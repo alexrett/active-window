@@ -73,6 +73,6 @@ var title C.char
 var owner C.char
 
 func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
-	C.hello(&title, &owner)
+	C.getActiveWindowTitle(&title, &owner)
 	return C.GoString(owner), C.GoString(title)
 }
