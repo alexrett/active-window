@@ -48,7 +48,10 @@ unsigned long get_long_property(char* property_name)
     return long_property;
 }
 
-void getActiveWindowTitle(char* title, char* owner)
+char *owner = NULL;
+char *title = NULL;
+
+void getActiveWindowTitle()
 {
     char *display_name = NULL;  // could be the value of $DISPLAY
 
@@ -63,17 +66,17 @@ void getActiveWindowTitle(char* title, char* owner)
 
     title = get_string_property("WM_CLASS");
     owner = get_string_property("_NET_WM_NAME");
-	printf("title: %s\nowner: %s\n", title, owner);
 
     XCloseDisplay(display);
 }
 */
 import "C"
 
-var title C.char
-var owner C.char
-
+// in the code above seems like has memory leaks and not properly closed XCloseDisplay
+// i tested it in virtualbox... maybe there is no problem on real device
+// one of possible solution is transfer some code from xdotool, but i feel it like not really needed
 func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
 	C.getActiveWindowTitle(&title, &owner)
-	return C.GoString(&owner), C.GoString(&title)
+
+	return C.GoString(C.owner), C.GoString(C.title)
 }
