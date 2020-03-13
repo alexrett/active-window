@@ -63,6 +63,7 @@ void getActiveWindowTitle(char* title, char* owner)
 
     title = get_string_property("WM_CLASS");
     owner = get_string_property("_NET_WM_NAME");
+	printf("title: %s\nowner: %s\n", title, owner);
 
     XCloseDisplay(display);
 }
