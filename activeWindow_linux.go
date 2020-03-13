@@ -54,7 +54,7 @@ void getActiveWindowTitle(char* title, char* owner)
 
     display = XOpenDisplay(display_name);
     if (display == NULL) {
-        fprintf (stderr, "%s:  unable to open display '%s'\n", argv[0], XDisplayName (display_name));
+        fprintf (stderr, "unable to open display '%s'\n", XDisplayName (display_name));
     }
     int screen = XDefaultScreen(display);
     window = RootWindow(display, screen);
