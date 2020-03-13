@@ -2,8 +2,7 @@
 
 package activeWindow
 
-func (a *ActiveWindow) getActiveWindowTitle() string {
+func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
 
-	return ""
+	return "", ""
 }
-

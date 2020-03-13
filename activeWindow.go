@@ -1,7 +1,7 @@
 package activeWindow
 
-type ActiveWindow struct {}
+type ActiveWindow struct{}
 
-func (a *ActiveWindow) GetActiveWindowTitle() string {
+func (a *ActiveWindow) GetActiveWindowTitle() (string, string) {
 	return a.getActiveWindowTitle()
 }

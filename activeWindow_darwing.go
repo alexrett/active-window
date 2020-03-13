@@ -1,25 +1,27 @@
 //+build darwin
 
 package activeWindow
+
 /*
 #cgo CFLAGS: -x objective-c
 #cgo LDFLAGS: -framework Foundation -framework CoreGraphics
 #include <Foundation/Foundation.h>
 #include <CoreGraphics/CoreGraphics.h>
 
-void getActiveWindowTitle(CFStringRef *title) {
+void getActiveWindowTitle(CFStringRef *title, CFStringRef *owner) {
 	CFArrayRef windowList = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
     CFIndex cfiLen = CFArrayGetCount(windowList);
 	CFDictionaryRef dictionary;
 	for (CFIndex cfiI = 0; cfiI < cfiLen; cfiI++){
 		dictionary = (CFDictionaryRef) CFArrayGetValueAtIndex(windowList, cfiI);
-		CFStringRef owner = (CFStringRef) CFDictionaryGetValue(dictionary,kCGWindowOwnerName);
+		CFStringRef owner2 = (CFStringRef) CFDictionaryGetValue(dictionary,kCGWindowOwnerName);
         CFStringRef title2 = (CFStringRef) CFDictionaryGetValue(dictionary,kCGWindowName);
         CFNumberRef window_layer = (CFNumberRef) CFDictionaryGetValue(dictionary, kCGWindowLayer);
         int layer;
         CFNumberGetValue(window_layer, kCFNumberIntType, &layer);
         if (layer==0){
 			*title = title2;
+			*owner = owner2;
             break;
         }
 	}
@@ -31,12 +33,14 @@ import (
 	"reflect"
 	"unsafe"
 )
+
 var title C.CFStringRef
+var owner C.CFStringRef
 
-func (a *ActiveWindow) getActiveWindowTitle() string {
-	C.getActiveWindowTitle(&title)
+func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
+	C.getActiveWindowTitle(&title, &owner)
 
-	return convertCFStringToString(title)
+	return convertCFStringToString(owner), convertCFStringToString(title)
 }
 
 // get from https://github.com/lilyball/go-osx-plist/blob/a0f875443af46a7c67f72a2fe1fd245e966a77c2/convert.go#L156
