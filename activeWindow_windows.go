@@ -3,26 +3,25 @@
 package activeWindow
 
 import (
-	// "fmt"
-	"syscall"
-	"path/filepath"
-	"unsafe"
 	"github.com/Andoryuuta/kiwi/w32"
-    "golang.org/x/sys/windows"
+	"golang.org/x/sys/windows"
+	"path/filepath"
+	"syscall"
+	"unsafe"
 )
 
 var (
-	user32 					= windows.NewLazyDLL("user32.dll")
-	psapi         		= windows.NewLazyDLL("psapi.dll")
-	procGetWindowText   	= user32.NewProc("GetWindowTextW")
-	procGetWindowTextLength = user32.NewProc("GetWindowTextLengthW")
+	user32                       = windows.NewLazyDLL("user32.dll")
+	psapi                        = windows.NewLazyDLL("psapi.dll")
+	procGetWindowText            = user32.NewProc("GetWindowTextW")
+	procGetWindowTextLength      = user32.NewProc("GetWindowTextLengthW")
 	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
 	procGetProcessImageFileNameA = psapi.NewProc("GetProcessImageFileNameA")
 )
 
 type (
 	HANDLE uintptr
-	HWND HANDLE
+	HWND   HANDLE
 )
 
 func GetWindowTextLength(hwnd HWND) int {
@@ -78,9 +77,9 @@ func GetWindowText(hwnd HWND) string {
 }
 
 func getWindow(funcName string) uintptr {
-    proc := user32.NewProc(funcName)
-    hwnd, _, _ := proc.Call()
-    return hwnd
+	proc := user32.NewProc(funcName)
+	hwnd, _, _ := proc.Call()
+	return hwnd
 }
 
 func GetWindowThreadProcessId(hwnd HWND) uint32 {
@@ -92,16 +91,14 @@ func GetWindowThreadProcessId(hwnd HWND) uint32 {
 	return procId
 }
 
-
 func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
 
-	if hwnd := getWindow("GetForegroundWindow") ; hwnd != 0 {
+	if hwnd := getWindow("GetForegroundWindow"); hwnd != 0 {
 		text := GetWindowText(HWND(hwnd))
 		pid := GetWindowThreadProcessId(HWND(hwnd))
 		process := getFileNameByPID(uint32(pid))
-		// splitted := strings.Split(" - ", text)
-		// fmt.Println("window :", text, "# hwnd:", hwnd, "#pid:", pid, "# proc:", process)
-		return process,text
+
+		return process, text
 	}
 
 	return "", ""
