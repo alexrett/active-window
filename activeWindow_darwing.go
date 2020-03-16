@@ -4,72 +4,73 @@ package activeWindow
 
 /*
 #cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Foundation -framework CoreGraphics
-#include <Foundation/Foundation.h>
-#include <CoreGraphics/CoreGraphics.h>
+#cgo LDFLAGS: -framework CoreGraphics  -framework CoreFoundation
 
-void getActiveWindowTitle(CFStringRef *title, CFStringRef *owner) {
-	CFArrayRef windowList = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
-    CFIndex cfiLen = CFArrayGetCount(windowList);
-	CFDictionaryRef dictionary;
-	for (CFIndex cfiI = 0; cfiI < cfiLen; cfiI++){
-		dictionary = (CFDictionaryRef) CFArrayGetValueAtIndex(windowList, cfiI);
-		CFStringRef owner2 = (CFStringRef) CFDictionaryGetValue(dictionary,kCGWindowOwnerName);
-        CFStringRef title2 = (CFStringRef) CFDictionaryGetValue(dictionary,kCGWindowName);
-        CFNumberRef window_layer = (CFNumberRef) CFDictionaryGetValue(dictionary, kCGWindowLayer);
-        int layer;
-        CFNumberGetValue(window_layer, kCFNumberIntType, &layer);
-        if (layer==0){
-			*title = title2;
-			*owner = owner2;
-            break;
-        }
-	}
-}
-
+#import <CoreFoundation/CoreFoundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 */
 import "C"
 import (
-	"reflect"
 	"unsafe"
 )
 
-var title C.CFStringRef
-var owner C.CFStringRef
+var title string
+var owner string
 
+// there is memory leaks... I can't find where it is...
+// todo: find and fix memory leaks on Darwin method getActiveWindowTitle()
 func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
-	C.getActiveWindowTitle(&title, &owner)
+	var (
+		dictionary  C.CFDictionaryRef
+		windowList  C.CFArrayRef
+		layer       C.int
+		cfiI        C.CFIndex
+		cfiLen      C.CFIndex
+		windowLayer C.CFNumberRef
+	)
 
-	return convertCFStringToString(owner), convertCFStringToString(title)
-}
-
-// get from https://github.com/lilyball/go-osx-plist/blob/a0f875443af46a7c67f72a2fe1fd245e966a77c2/convert.go#L156
-func convertCFStringToString(cfStr C.CFStringRef) string {
-	// NB: don't use CFStringGetCStringPtr() because it will stop at the first NUL
-	length := C.CFStringGetLength(cfStr)
-	if length == 0 {
-		// short-cut for empty strings
-		return ""
-	}
-	cfRange := C.CFRange{0, length}
-	enc := C.CFStringEncoding(C.kCFStringEncodingUTF8)
-	// first find the buffer size necessary
-	var usedBufLen C.CFIndex
-	if C.CFStringGetBytes(cfStr, cfRange, enc, 0, C.false, nil, 0, &usedBufLen) > 0 {
-		bytes := make([]byte, usedBufLen)
-		buffer := (*C.UInt8)(unsafe.Pointer(&bytes[0]))
-		if C.CFStringGetBytes(cfStr, cfRange, enc, 0, C.false, buffer, usedBufLen, nil) > 0 {
-			// bytes is now filled up
-			// convert it to a string
-			header := (*reflect.SliceHeader)(unsafe.Pointer(&bytes))
-			strHeader := &reflect.StringHeader{
-				Data: header.Data,
-				Len:  header.Len,
-			}
-			return *(*string)(unsafe.Pointer(strHeader))
+	windowList = C.CGWindowListCopyWindowInfo(C.kCGWindowListOptionOnScreenOnly, C.kCGNullWindowID)
+	cfiLen = C.CFArrayGetCount(windowList)
+	for cfiI = 0; cfiI < cfiLen; cfiI++ {
+		dictionary = C.CFDictionaryRef(C.CFArrayGetValueAtIndex(windowList, cfiI))
+		windowLayer = C.CFNumberRef(C.CFDictionaryGetValue(dictionary, unsafe.Pointer(C.kCGWindowLayer)))
+		C.CFNumberGetValue(windowLayer, C.kCFNumberIntType, unsafe.Pointer(&layer))
+		if layer == 0 {
+			var tmpTitle C.CFStringRef
+			var tmpOwner C.CFStringRef
+			tmpOwner = C.CFStringRef(C.CFDictionaryGetValue(dictionary, unsafe.Pointer(C.kCGWindowOwnerName)))
+			tmpTitle = C.CFStringRef(C.CFDictionaryGetValue(dictionary, unsafe.Pointer(C.kCGWindowName)))
+			owner = CFStringToString(tmpOwner)
+			title = CFStringToString(tmpTitle)
+			C.CFRelease(C.CFTypeRef(tmpOwner))
+			C.CFRelease(C.CFTypeRef(tmpTitle))
+			break
 		}
 	}
 
-	// we failed to convert, for some reason. Too bad there's no nil string
-	return ""
+	defer C.free(unsafe.Pointer(dictionary))
+	defer C.CFRetain(C.CFTypeRef(windowList))
+	defer C.CFRelease(C.CFTypeRef(windowLayer))
+
+	return owner, title
+}
+
+// CFStringToString converts a CFStringRef to a string.
+func CFStringToString(s C.CFStringRef) string {
+	p := C.CFStringGetCStringPtr(s, C.kCFStringEncodingUTF8)
+	if p != nil {
+		return C.GoString(p)
+	}
+	length := C.CFStringGetLength(s)
+	if length == 0 {
+		return ""
+	}
+	maxBufLen := C.CFStringGetMaximumSizeForEncoding(length, C.kCFStringEncodingUTF8)
+	if maxBufLen == 0 {
+		return ""
+	}
+	buf := make([]byte, maxBufLen)
+	var usedBufLen C.CFIndex
+	_ = C.CFStringGetBytes(s, C.CFRange{0, length}, C.kCFStringEncodingUTF8, C.UInt8(0), C.false, (*C.UInt8)(&buf[0]), maxBufLen, &usedBufLen)
+	return string(buf[:usedBufLen])
 }
