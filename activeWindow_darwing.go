@@ -11,6 +11,7 @@ package activeWindow
 */
 import "C"
 import (
+	"reflect"
 	"unsafe"
 )
 
@@ -55,22 +56,32 @@ func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
 	return owner, title
 }
 
-// CFStringToString converts a CFStringRef to a string.
-func CFStringToString(s C.CFStringRef) string {
-	p := C.CFStringGetCStringPtr(s, C.kCFStringEncodingUTF8)
-	if p != nil {
-		return C.GoString(p)
-	}
-	length := C.CFStringGetLength(s)
+func CFStringToString(cfStr C.CFStringRef) string {
+	// NB: don't use CFStringGetCStringPtr() because it will stop at the first NUL
+	length := C.CFStringGetLength(cfStr)
 	if length == 0 {
+		// short-cut for empty strings
 		return ""
 	}
-	maxBufLen := C.CFStringGetMaximumSizeForEncoding(length, C.kCFStringEncodingUTF8)
-	if maxBufLen == 0 {
-		return ""
-	}
-	buf := make([]byte, maxBufLen)
+	cfRange := C.CFRange{0, length}
+	enc := C.CFStringEncoding(C.kCFStringEncodingUTF8)
+	// first find the buffer size necessary
 	var usedBufLen C.CFIndex
-	_ = C.CFStringGetBytes(s, C.CFRange{0, length}, C.kCFStringEncodingUTF8, C.UInt8(0), C.false, (*C.UInt8)(&buf[0]), maxBufLen, &usedBufLen)
-	return string(buf[:usedBufLen])
+	if C.CFStringGetBytes(cfStr, cfRange, enc, 0, C.false, nil, 0, &usedBufLen) > 0 {
+		bytes := make([]byte, usedBufLen)
+		buffer := (*C.UInt8)(unsafe.Pointer(&bytes[0]))
+		if C.CFStringGetBytes(cfStr, cfRange, enc, 0, C.false, buffer, usedBufLen, nil) > 0 {
+			// bytes is now filled up
+			// convert it to a string
+			header := (*reflect.SliceHeader)(unsafe.Pointer(&bytes))
+			strHeader := &reflect.StringHeader{
+				Data: header.Data,
+				Len:  header.Len,
+			}
+			return *(*string)(unsafe.Pointer(strHeader))
+		}
+	}
+
+	// we failed to convert, for some reason. Too bad there's no nil string
+	return ""
 }
