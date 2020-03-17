@@ -8,6 +8,15 @@
 
 #import "ActivityWindowProvider.h"
 
+const char* getOwner() {
+    ActivityWindowProvider *window = [[ActivityWindowProvider alloc] init];
+    NSString* ownerName = [window getOwnerAndName];
+    const char *result = [ownerName UTF8String];
+    [window release];
+    [ownerName release];
+    return result;
+}
+
 @implementation ActivityWindowProvider
 
 - (BOOL)permissionCheck {
@@ -57,6 +66,10 @@
     }
     [windows release];
     return result;
+}
+
+char* getOwnerName(void) {
+    return "YES";
 }
 
 @end

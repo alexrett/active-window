@@ -8,6 +8,9 @@
 
 #import <Foundation/Foundation.h>
 
+const char* _Nonnull getOwner(void);
+
+
 NS_ASSUME_NONNULL_BEGIN
 
 @protocol ActivityWindowProviderInput
