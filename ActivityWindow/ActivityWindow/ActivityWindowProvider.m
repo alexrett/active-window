@@ -68,8 +68,4 @@ const char* getOwner() {
     return result;
 }
 
-char* getOwnerName(void) {
-    return "YES";
-}
-
 @end
