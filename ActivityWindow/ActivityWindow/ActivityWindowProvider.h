@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol ActivityWindowProviderInput
  
+- (BOOL)permissionCheck;
 - (NSString*)getOwnerAndName;
  
 @end

@@ -10,6 +10,35 @@
 
 @implementation ActivityWindowProvider
 
+- (BOOL)permissionCheck {
+    if (@available(macOS 10.15, *)) {
+        CFArrayRef windowList = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
+        NSUInteger numberOfWindows = CFArrayGetCount(windowList);
+        NSUInteger numberOfWindowsWithInfoGet = 0;
+        for (int idx = 0; idx < numberOfWindows; idx++) {
+            
+            NSDictionary *windowInfo = (NSDictionary *)CFArrayGetValueAtIndex(windowList, idx);
+            NSString *windowName = windowInfo[(id)kCGWindowName];
+            NSNumber* sharingType = windowInfo[(id)kCGWindowSharingState];
+            
+            if (windowName || kCGWindowSharingNone != sharingType.intValue) {
+                numberOfWindowsWithInfoGet++;
+            } else {
+                NSNumber* pid = windowInfo[(id)kCGWindowOwnerPID];
+                NSString* appName = windowInfo[(id)kCGWindowOwnerName];
+                NSLog(@"windowInfo get Fail pid:%lu appName:%@", pid.integerValue, appName);
+            }
+        }
+        CFRelease(windowList);
+        if (numberOfWindows == numberOfWindowsWithInfoGet) {
+            return YES;
+        } else {
+            return NO;
+        }
+    }
+    return YES;
+}
+
 - (NSString*)getOwnerAndName {
     CFArrayRef windowArray = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
     NSArray*  windows = (NSArray*)windowArray;
