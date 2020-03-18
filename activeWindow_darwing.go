@@ -2,13 +2,17 @@
 
 package activeWindow
 
+import (
+	"fmt"
+	"strings"
+)
 /*
 #cgo CFLAGS: -x objective-c
 #cgo LDFLAGS: -framework CoreGraphics -framework Foundation
 #import <Foundation/Foundation.h>
 #import <CoreFoundation/CoreFoundation.h>
 #import <CoreGraphics/CoreGraphics.h>
-void getOwnerAndName() {
+const char* getOwnerAndName() {
     CFArrayRef windowArray = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
     NSArray*  windows = (NSArray*)windowArray;
     NSString *result = nil;
@@ -17,15 +21,17 @@ void getOwnerAndName() {
         if (windowLayer.intValue == 0) {
             NSString *owner = [window objectForKey:@"kCGWindowOwnerName"];
             NSString *name = [window objectForKey:@"kCGWindowName"];
-            result = [[NSString alloc] initWithFormat: @"%@+%@", owner, name];
+            result = [[NSString alloc] initWithFormat: @"%@,%@", owner, name];
             break;
         }
     }
     if (result == nil) {
-        result = @"empty";
+        result = @"empty,empty";
     }
-    [windows release];
-    NSLog(@"%@", result);
+	CFRelease(windowArray);
+	const char * str = [result UTF8String];
+    [result release];
+    return str;
 }
 
 bool permissionCheck() {
@@ -63,6 +69,12 @@ var title string
 var owner string
 
 func (a *ActiveWindow) getActiveWindowTitle() (string, string) {
-	C.getOwnerAndName()
+	cStr := C.getOwnerAndName()
+	goStr := C.GoString(cStr)
+	slice := strings.SplitN(goStr, ",", 2)
+	owner = slice[0]
+	title = slice[1]
+	fmt.Println(title)
+	fmt.Println(owner)
 	return owner, title
 }
